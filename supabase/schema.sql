@@ -1,5 +1,5 @@
 -- ============================================================
--- Flowboard schema
+-- Tempo schema
 -- Run this in the Supabase SQL editor (Dashboard → SQL Editor).
 -- Every table is scoped to auth.uid() via RLS; the anonymous
 -- auth session provides the user identity.

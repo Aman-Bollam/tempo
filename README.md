@@ -1,4 +1,4 @@
-# Flowboard
+# Tempo
 
 A Kanban task board inspired by Linear and Asana. Built with React + TypeScript + Vite on the frontend and Supabase (Postgres, anonymous auth, RLS) for persistence.
 

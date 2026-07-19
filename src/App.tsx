@@ -77,7 +77,7 @@ export default function App() {
       <header className="topbar">
         <div className="topbar__brand">
           <img src="/favicon.svg" alt="" className="topbar__logo" />
-          Flowboard
+          Tempo
         </div>
         <div className="topbar__spacer" />
         <div className="topbar__stats" aria-label="Board summary">

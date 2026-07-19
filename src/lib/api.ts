@@ -169,7 +169,7 @@ class SupabaseApi implements DataApi {
    create/update.
    ============================================================ */
 
-const LS_KEY = 'flowboard-mock'
+const LS_KEY = 'tempo-mock'
 
 interface MockDb {
   userId: string
