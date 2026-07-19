@@ -4,8 +4,10 @@ import {
   PointerSensor,
   TouchSensor,
   closestCorners,
+  pointerWithin,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
 } from '@dnd-kit/core'
@@ -23,6 +25,14 @@ interface BoardProps {
   onOpenTask: (task: Task) => void
   onAddTask: (status: Status) => void
   filtered: boolean
+}
+
+/* closestCorners alone misses drops on tall empty columns (their corners
+   are far from the pointer even when it's inside them), so prefer whatever
+   droppable actually contains the pointer. */
+const collisionDetection: CollisionDetection = (args) => {
+  const withinPointer = pointerWithin(args)
+  return withinPointer.length > 0 ? withinPointer : closestCorners(args)
 }
 
 export function Board({
@@ -65,7 +75,7 @@ export function Board({
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetection}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
       onDragCancel={() => setActiveTask(null)}
