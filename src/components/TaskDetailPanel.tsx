@@ -108,7 +108,7 @@ export function TaskDetailPanel({ task, onClose }: TaskDetailPanelProps) {
           <span className="badge" style={{ background: 'var(--c-well)', color: 'var(--c-text-secondary)' }}>
             {STATUS_META[task.status].label}
           </span>
-          <div className="topbar__spacer" />
+          <div className="spacer" />
           {confirmDelete ? (
             <span className="panel__confirm">
               Delete this task?

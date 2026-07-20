@@ -1,6 +1,15 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Board } from './components/Board'
-import { SearchIcon, PlusIcon, TagIcon, UsersIcon, XIcon } from './components/Icons'
+import {
+  BoardIcon,
+  MoonIcon,
+  PlusIcon,
+  SearchIcon,
+  SunIcon,
+  TagIcon,
+  UsersIcon,
+  XIcon,
+} from './components/Icons'
 import { ManageModal } from './components/ManageModal'
 import { NewTaskModal } from './components/NewTaskModal'
 import { TaskDetailPanel } from './components/TaskDetailPanel'
@@ -9,9 +18,18 @@ import { STATUSES } from './lib/types'
 import { isOverdue, initials } from './lib/utils'
 import { useBoard } from './state/BoardContext'
 
+type Theme = 'light' | 'dark'
+
+function initialTheme(): Theme {
+  const stored = localStorage.getItem('tempo-theme')
+  if (stored === 'light' || stored === 'dark') return stored
+  return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export default function App() {
   const { phase, errorMsg, data, reload, toast, dismissToast } = useBoard()
 
+  const [theme, setTheme] = useState<Theme>(initialTheme)
   const [search, setSearch] = useState('')
   const [priorityFilter, setPriorityFilter] = useState<Priority | ''>('')
   const [assigneeFilter, setAssigneeFilter] = useState('')
@@ -20,6 +38,11 @@ export default function App() {
   const [newTaskStatus, setNewTaskStatus] = useState<Status | null>(null)
   const [openTaskId, setOpenTaskId] = useState<string | null>(null)
   const [manageOpen, setManageOpen] = useState<'team' | 'labels' | null>(null)
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme
+    localStorage.setItem('tempo-theme', theme)
+  }, [theme])
 
   const filtersActive =
     search.trim() !== '' || priorityFilter !== '' || assigneeFilter !== '' || labelFilter !== ''
@@ -72,123 +95,201 @@ export default function App() {
 
   const openTask = openTaskId ? (data.tasks.find((t) => t.id === openTaskId) ?? null) : null
 
+  const sidebarSections = (
+    <>
+      <div className="sidebar__section" aria-label="Board summary">
+        <h4>Overview</h4>
+        <div className="sidebar__stat">
+          <span>Total tasks</span>
+          <strong>{stats.total}</strong>
+        </div>
+        <div className="sidebar__stat">
+          <span>Completed</span>
+          <strong>{stats.done}</strong>
+        </div>
+        <div className="sidebar__stat">
+          <span>Overdue</span>
+          <strong className={stats.overdue > 0 ? 'sidebar__stat-danger' : ''}>
+            {stats.overdue}
+          </strong>
+        </div>
+      </div>
+
+      <div className="sidebar__section">
+        <h4>
+          Team
+          <button
+            className="sidebar__section-add"
+            onClick={() => setManageOpen('team')}
+            aria-label="Manage team"
+          >
+            <PlusIcon size={13} />
+          </button>
+        </h4>
+        {data.members.length === 0 ? (
+          <p className="sidebar__hint">Add teammates to assign tasks.</p>
+        ) : (
+          data.members.map((m) => (
+            <button
+              key={m.id}
+              className={`sidebar__row${assigneeFilter === m.id ? ' sidebar__row--active' : ''}`}
+              onClick={() => setAssigneeFilter(assigneeFilter === m.id ? '' : m.id)}
+              title={`Filter by ${m.name}`}
+            >
+              <span className="avatar" style={{ background: m.color }}>
+                {initials(m.name)}
+              </span>
+              <span className="sidebar__row-name">{m.name}</span>
+            </button>
+          ))
+        )}
+      </div>
+
+      <div className="sidebar__section">
+        <h4>
+          Labels
+          <button
+            className="sidebar__section-add"
+            onClick={() => setManageOpen('labels')}
+            aria-label="Manage labels"
+          >
+            <PlusIcon size={13} />
+          </button>
+        </h4>
+        {data.labels.length === 0 ? (
+          <p className="sidebar__hint">Create labels like “Bug” or “Design”.</p>
+        ) : (
+          <div className="sidebar__labels">
+            {data.labels.map((l) => (
+              <button
+                key={l.id}
+                className="label-pill label-pill--pick"
+                style={{
+                  background: labelFilter === l.id ? l.color : 'transparent',
+                  color: labelFilter === l.id ? '#fff' : l.color,
+                  borderColor: l.color,
+                }}
+                onClick={() => setLabelFilter(labelFilter === l.id ? '' : l.id)}
+                title={`Filter by ${l.name}`}
+              >
+                {l.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </>
+  )
+
   return (
     <div className="app">
-      <header className="topbar">
-        <div className="topbar__brand">
-          <img src="/favicon.svg" alt="" className="topbar__logo" />
-          Tempo
+      <aside className="sidebar">
+        <div className="sidebar__brand">
+          <img src="/favicon.svg" alt="" className="sidebar__logo" />
+          <span>Tempo</span>
         </div>
-        <div className="topbar__spacer" />
-        <div className="topbar__stats" aria-label="Board summary">
-          <span className="stat-chip">
-            <strong>{stats.total}</strong> tasks
+        <nav className="sidebar__nav">
+          <span className="sidebar__nav-item sidebar__nav-item--active">
+            <BoardIcon /> Board
           </span>
-          <span className="stat-chip">
-            <strong>{stats.done}</strong> done
-          </span>
-          {stats.overdue > 0 && (
-            <span className="stat-chip stat-chip--overdue">
-              <strong>{stats.overdue}</strong> overdue
-            </span>
-          )}
-        </div>
-        <div className="avatar-stack" aria-label="Team">
-          {data.members.slice(0, 5).map((m) => (
-            <span key={m.id} className="avatar" style={{ background: m.color }} title={m.name}>
-              {initials(m.name)}
-            </span>
-          ))}
-        </div>
-      </header>
-
-      {phase === 'loading' && <BoardSkeleton />}
-
-      {phase === 'error' && (
-        <div className="state-screen">
-          <h2>Couldn’t load your board</h2>
-          <p>{errorMsg}</p>
-          <button className="btn-primary" onClick={reload}>
-            Try again
+        </nav>
+        {sidebarSections}
+        <div className="sidebar__footer">
+          <button
+            className="btn-ghost"
+            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+            aria-label="Toggle theme"
+          >
+            {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+            {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
         </div>
-      )}
+      </aside>
 
-      {phase === 'ready' && (
-        <>
-          <div className="toolbar">
-            <div className="search">
-              <SearchIcon />
-              <input
-                placeholder="Search tasks…"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                aria-label="Search tasks by title"
-              />
-            </div>
-            <select
-              className="select select--inline"
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
-              aria-label="Filter by priority"
-            >
-              <option value="">Priority: all</option>
-              <option value="high">High</option>
-              <option value="normal">Normal</option>
-              <option value="low">Low</option>
-            </select>
-            <select
-              className="select select--inline"
-              value={assigneeFilter}
-              onChange={(e) => setAssigneeFilter(e.target.value)}
-              aria-label="Filter by assignee"
-            >
-              <option value="">Assignee: all</option>
-              {data.members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <select
-              className="select select--inline"
-              value={labelFilter}
-              onChange={(e) => setLabelFilter(e.target.value)}
-              aria-label="Filter by label"
-            >
-              <option value="">Label: all</option>
-              {data.labels.map((l) => (
-                <option key={l.id} value={l.id}>
-                  {l.name}
-                </option>
-              ))}
-            </select>
-            {filtersActive && (
-              <button
-                className="btn-ghost"
-                onClick={() => {
-                  setSearch('')
-                  setPriorityFilter('')
-                  setAssigneeFilter('')
-                  setLabelFilter('')
-                }}
+      <main className="workspace">
+        <header className="workspace__header">
+          <div className="workspace__title">
+            <img src="/favicon.svg" alt="" className="workspace__logo" />
+            <h1>Board</h1>
+          </div>
+          {phase === 'ready' && (
+            <>
+              <div className="search">
+                <SearchIcon />
+                <input
+                  placeholder="Search tasks…"
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  aria-label="Search tasks by title"
+                />
+              </div>
+              <select
+                className="select select--inline"
+                value={priorityFilter}
+                onChange={(e) => setPriorityFilter(e.target.value as Priority | '')}
+                aria-label="Filter by priority"
               >
-                <XIcon size={13} /> Clear
+                <option value="">Priority: all</option>
+                <option value="high">High</option>
+                <option value="normal">Normal</option>
+                <option value="low">Low</option>
+              </select>
+              <select
+                className="select select--inline workspace__assignee-filter"
+                value={assigneeFilter}
+                onChange={(e) => setAssigneeFilter(e.target.value)}
+                aria-label="Filter by assignee"
+              >
+                <option value="">Assignee: all</option>
+                {data.members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+              {filtersActive && (
+                <button
+                  className="btn-ghost"
+                  onClick={() => {
+                    setSearch('')
+                    setPriorityFilter('')
+                    setAssigneeFilter('')
+                    setLabelFilter('')
+                  }}
+                >
+                  <XIcon size={13} /> Clear
+                </button>
+              )}
+              <div className="workspace__spacer" />
+              <div className="workspace__mobile-actions">
+                <button className="btn-ghost" onClick={() => setManageOpen('team')}>
+                  <UsersIcon />
+                </button>
+                <button className="btn-ghost" onClick={() => setManageOpen('labels')}>
+                  <TagIcon />
+                </button>
+              </div>
+              <button className="btn-primary" onClick={() => setNewTaskStatus('todo')}>
+                <PlusIcon size={14} /> New task
               </button>
-            )}
-            <div className="topbar__spacer" />
-            <button className="btn-ghost" onClick={() => setManageOpen('team')}>
-              <UsersIcon /> Team
-            </button>
-            <button className="btn-ghost" onClick={() => setManageOpen('labels')}>
-              <TagIcon /> Labels
-            </button>
-            <button className="btn-primary" onClick={() => setNewTaskStatus('todo')}>
-              <PlusIcon size={14} /> New task
+            </>
+          )}
+        </header>
+
+        {phase === 'loading' && <BoardSkeleton />}
+
+        {phase === 'error' && (
+          <div className="state-screen">
+            <h2>Couldn’t load your board</h2>
+            <p>{errorMsg}</p>
+            <button className="btn-primary" onClick={reload}>
+              Try again
             </button>
           </div>
+        )}
 
-          {data.tasks.length === 0 && !filtersActive ? (
+        {phase === 'ready' &&
+          (data.tasks.length === 0 && !filtersActive ? (
             <div className="state-screen">
               <h2>Your board is empty</h2>
               <p>
@@ -208,9 +309,8 @@ export default function App() {
               onAddTask={(status) => setNewTaskStatus(status)}
               filtered={filtersActive}
             />
-          )}
-        </>
-      )}
+          ))}
+      </main>
 
       {newTaskStatus && (
         <NewTaskModal initialStatus={newTaskStatus} onClose={() => setNewTaskStatus(null)} />
@@ -232,7 +332,7 @@ export default function App() {
 
 function BoardSkeleton() {
   return (
-    <div className="board" aria-label="Loading board" style={{ marginTop: 58 }}>
+    <div className="board" aria-label="Loading board">
       {STATUSES.map((s) => (
         <div key={s} className="column" style={{ padding: 10, gap: 8 }}>
           <div className="skeleton" style={{ height: 18, width: '55%', marginBottom: 6 }} />

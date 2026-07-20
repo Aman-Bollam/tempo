@@ -84,3 +84,23 @@ export const ChevronDownIcon = ({ size = 13, className }: IconProps) => (
     <path d="m6 9 6 6 6-6" />
   </svg>
 )
+
+export const BoardIcon = ({ size = 15, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <rect x="3" y="3" width="18" height="18" rx="3" />
+    <path d="M9 3v18M15 3v12" />
+  </svg>
+)
+
+export const SunIcon = ({ size = 14, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <circle cx="12" cy="12" r="4.5" />
+    <path d="M12 2.5v2.5M12 19v2.5M2.5 12h2.5M19 12h2.5M5 5l1.8 1.8M17.2 17.2 19 19M19 5l-1.8 1.8M6.8 17.2 5 19" />
+  </svg>
+)
+
+export const MoonIcon = ({ size = 14, className }: IconProps) => (
+  <svg {...base(size)} className={className}>
+    <path d="M20.5 14.5A8.5 8.5 0 0 1 9.5 3.5a8.5 8.5 0 1 0 11 11Z" />
+  </svg>
+)

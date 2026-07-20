@@ -98,7 +98,7 @@ export function ManageModal({ kind, onClose }: ManageModalProps) {
                     </span>
                   )}
                   {kind === 'team' && <span className="manage-row__name">{item.name}</span>}
-                  <span className="topbar__spacer" />
+                  <span className="spacer" />
                   <button
                     className="btn-ghost btn-ghost--danger"
                     onClick={() => {
